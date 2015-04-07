@@ -2,11 +2,12 @@ require "benchmark"
 require "faker"
 require "./worker.rb"
 
+worker_size = 10
 email_array = []
 output = []
 duplicate_email = Faker::Internet.email
 
-500000.times do 
+500.times do 
   random_email = Faker::Internet.email
   while random_email != duplicate_email
     email_array << random_email
@@ -17,7 +18,12 @@ end
 
 test_array = email_array.shuffle
 
-chunked_array = test_array.each_slice(50000).to_a
+chunked_array = Array.new(worker_size) {[]}
+test_array.each do |email|
+  hash = email.hash
+  chunked_array[hash % worker_size] << email
+end
+
 worker_array = []
 
 Benchmark.bm do |bm| 
@@ -32,5 +38,6 @@ Benchmark.bm do |bm|
 
     threads.each {|thr| thr.join}
     worker_array.map {|worker| output << worker.array}
+    output.flatten!
   end
 end
